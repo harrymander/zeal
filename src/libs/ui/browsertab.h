@@ -7,6 +7,7 @@
 #include <registry/searchmodel.h>
 
 #include <QModelIndexList>
+#include <QString>
 #include <QWidget>
 
 class QToolButton;
@@ -39,7 +40,7 @@ public:
 
 public slots:
     void navigateToStartPage();
-    void search(const Registry::SearchQuery &query);
+    void search(const QString &query);
 
 signals:
     void iconChanged(const QIcon &icon);

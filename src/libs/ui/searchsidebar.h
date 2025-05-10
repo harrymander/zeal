@@ -7,6 +7,7 @@
 #include <sidebar/view.h>
 
 #include <QModelIndexList>
+#include <QString>
 #include <QWidget>
 
 class QItemSelection;
@@ -42,7 +43,7 @@ signals:
 
 public slots:
     void focusSearchEdit(bool clear = false);
-    void search(const Registry::SearchQuery &query);
+    void search(const QString &query);
 
 private slots:
     void navigateToIndex(const QModelIndex &index);
