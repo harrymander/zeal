@@ -144,7 +144,7 @@ MainWindow::~MainWindow()
     m_settings->windowGeometry = saveGeometry();
 }
 
-void MainWindow::search(const Registry::SearchQuery &query)
+void MainWindow::search(const QString &query)
 {
     if (auto tab = currentTab()) {
         tab->search(query);

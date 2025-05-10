@@ -13,6 +13,7 @@
 #include <QDir>
 #include <QIcon>
 #include <QMessageBox>
+#include <QString>
 #include <QTextStream>
 #include <QTimer>
 #include <QUrlQuery>
@@ -40,7 +41,7 @@ struct CommandLineParameters
     bool unregisterProtocolHandlers;
 #endif
 
-    Registry::SearchQuery query;
+    QString url;
 };
 
 QString stripParameterUrl(const QString &url, const QString &scheme)
@@ -95,29 +96,41 @@ CommandLineParameters parseCommandLine(const QStringList &arguments)
     }
 #endif
 
-    // TODO: Support dash-feed:// protocol
-    const QString arg
-            = QUrl::fromPercentEncoding(parser.positionalArguments().value(0).toUtf8());
+    clParams.url = QUrl::fromPercentEncoding(parser.positionalArguments().value(0).toUtf8());
+    return clParams;
+}
 
-    if (arg.startsWith(QLatin1String("dash:"))) {
-        clParams.query.setQuery(stripParameterUrl(arg, QStringLiteral("dash")));
-    } else if (arg.startsWith(QLatin1String("dash-plugin:"))) {
-        const QUrlQuery urlQuery(stripParameterUrl(arg, QStringLiteral("dash-plugin")));
+struct QueryUrlActions {
+    QString queryStr;
+    bool preventActivation = false;
+};
+
+QueryUrlActions parseQueryUrl(const QString& url)
+{
+    // TODO: Support dash-feed:// protocol
+
+    QueryUrlActions actions;
+    if (url.startsWith(QLatin1String("dash:"))) {
+        actions.queryStr = stripParameterUrl(url, QStringLiteral("dash"));
+    } else if (url.startsWith(QLatin1String("dash-plugin:"))) {
+        const QUrlQuery urlQuery(stripParameterUrl(url, QStringLiteral("dash-plugin")));
+        Registry::SearchQuery query;
 
         const QString keys = urlQuery.queryItemValue(QStringLiteral("keys"));
         if (!keys.isEmpty())
-            clParams.query.setKeywords(keys.split(QLatin1Char(',')));
+            query.setKeywords(keys.split(QLatin1Char(',')));
 
-        clParams.query.setQuery(urlQuery.queryItemValue(QStringLiteral("query")));
+        query.setQuery(urlQuery.queryItemValue(QStringLiteral("query")));
+        actions.queryStr = query.toString();
 
-        const QString preventActivation
+        const QString preventActivationStr
                 = urlQuery.queryItemValue(QStringLiteral("prevent_activation"));
-        clParams.preventActivation = preventActivation == QLatin1String("true");
+        actions.preventActivation = preventActivationStr == QLatin1String("true");
     } else {
-        clParams.query.setQuery(arg);
+        actions.queryStr = url;
     }
 
-    return clParams;
+    return actions;
 }
 
 #ifdef Q_OS_WINDOWS
@@ -226,7 +239,7 @@ int main(int argc, char *argv[])
 #endif
         QByteArray ba;
         QDataStream out(&ba, QIODevice::WriteOnly);
-        out << clParams.query << clParams.preventActivation;
+        out << clParams.url;
         if (!appSingleton->sendMessage(ba)) {
             QTextStream(stderr) << "Failed to send query to the primary instance." << '\n';
             return EXIT_FAILURE;
@@ -245,20 +258,20 @@ int main(int argc, char *argv[])
 
     QObject::connect(appSingleton.data(), &Core::ApplicationSingleton::messageReceived,
                      [&app](const QByteArray &data) {
-        Registry::SearchQuery query;
-        bool preventActivation;
-
+        QString url;
         QDataStream in(data);
-        in >> query >> preventActivation;
+        in >> url;
 
-        app->executeQuery(query, preventActivation);
+        QueryUrlActions actions = parseQueryUrl(url);
+        app->executeQuery(actions.queryStr, actions.preventActivation);
     });
 
     app->showMainWindow(clParams.forceMinimized);
 
-    if (!clParams.query.isEmpty()) {
-        QTimer::singleShot(0, app.data(), [&app, clParams] {
-            app->executeQuery(clParams.query, clParams.preventActivation);
+    if (!clParams.url.isEmpty()) {
+        QueryUrlActions actions = parseQueryUrl(clParams.url);
+        QTimer::singleShot(0, app.data(), [&app, actions] {
+            app->executeQuery(actions.queryStr, actions.preventActivation);
         });
     }
 
