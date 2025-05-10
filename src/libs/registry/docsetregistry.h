@@ -6,6 +6,7 @@
 #define ZEAL_REGISTRY_DOCSETREGISTRY_H
 
 #include "cancellationtoken.h"
+#include "registry/searchquery.h"
 #include "searchresult.h"
 
 #include <QMap>
@@ -49,6 +50,7 @@ public:
     QList<Docset *> docsets() const;
 
     void search(const QString &query);
+    void runQuery(const SearchQuery &searchQuery);
     const QList<SearchResult> &queryResults();
 
 signals:
@@ -58,7 +60,7 @@ signals:
     void searchCompleted(const QList<SearchResult> &results);
 
 private slots:
-    void _runQuery(const QString &query);
+    void _runQuery(const SearchQuery &searchQuery);
 
 private:
     void addDocsetsFromFolder(const QString &path);

@@ -146,7 +146,7 @@ SearchSidebar::SearchSidebar(const SearchSidebar *other, QWidget *parent)
         setTreeViewModel(Core::Application::instance()->docsetRegistry()->model(), true);
     }
 
-    connect(m_searchEdit, &QLineEdit::textChanged, this, [this](const QString &text) {
+    connect(m_searchEdit, &QLineEdit::textEdited, this, [this](const QString &text) {
         QItemSelectionModel *oldSelectionModel = m_treeView->selectionModel();
 
         if (text.isEmpty()) {
@@ -300,6 +300,9 @@ void SearchSidebar::focusSearchEdit(bool clear)
 void SearchSidebar::search(const QString &query)
 {
     m_searchEdit->setText(query);
+    Core::Application::instance()->docsetRegistry()->runQuery(
+        Registry::SearchQuery::fromString(query)
+    );
 }
 
 void SearchSidebar::navigateToIndex(const QModelIndex &index)

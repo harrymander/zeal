@@ -4,6 +4,7 @@
 #ifndef ZEAL_WIDGETUI_SEARCHSIDEBAR_H
 #define ZEAL_WIDGETUI_SEARCHSIDEBAR_H
 
+#include "registry/searchquery.h"
 #include <sidebar/view.h>
 
 #include <QModelIndexList>

@@ -34,6 +34,7 @@ DocsetRegistry::DocsetRegistry(QObject *parent)
 {
     // Register for use in signal connections.
     qRegisterMetaType<QList<SearchResult>>("QList<SearchResult>");
+    qRegisterMetaType<SearchQuery>("SearchQuery");
 
     // FIXME: Only search should be performed in a separate thread
     moveToThread(m_thread);
@@ -196,16 +197,25 @@ void DocsetRegistry::search(const QString &query)
         return;
     }
 
-    QMetaObject::invokeMethod(this, "_runQuery", Qt::QueuedConnection, Q_ARG(QString, query));
+    runQuery(SearchQuery::fromString(query));
 }
 
-void DocsetRegistry::_runQuery(const QString &query)
+void DocsetRegistry::runQuery(const SearchQuery &searchQuery)
+{
+    QMetaObject::invokeMethod(
+        this,
+        "_runQuery",
+        Qt::QueuedConnection,
+        Q_ARG(SearchQuery, searchQuery)
+    );
+}
+
+void DocsetRegistry::_runQuery(const SearchQuery &searchQuery)
 {
     m_cancellationToken.reset();
 
     QList<Docset *> enabledDocsets;
 
-    const SearchQuery searchQuery = SearchQuery::fromString(query);
     if (searchQuery.hasKeywords()) {
         for (Docset *docset : std::as_const(m_docsets)) {
             if (searchQuery.hasKeywords(docset->keywords()))
